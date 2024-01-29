@@ -32,7 +32,7 @@ namespace moiraesoftware
     static String getPanningTextForValue (float value)
     {
         if (value == 0.5f)
-            return "center";
+            return "< c >";
 
         if (value < 0.5f)
             return String (roundToInt ((0.5f - value) * 200.0f)) + "%L";
@@ -44,7 +44,7 @@ namespace moiraesoftware
     {
         strText = strText.trim().toLowerCase();
 
-        if (strText == "center" || strText == "c")
+        if (strText == "center" || strText == "c" || strText == "< c >")
             return 0.5f;
 
         if (strText.endsWith ("%l"))
