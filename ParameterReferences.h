@@ -5,32 +5,28 @@
 namespace moiraesoftware
 {
     using namespace juce;
-    using Parameter = AudioProcessorValueTreeState::Parameter;
+    using Parameter  = AudioProcessorValueTreeState::Parameter;
     using Attributes = AudioProcessorValueTreeStateParameterAttributes;
 
     template <typename Param>
-    static void add (AudioProcessorParameterGroup& group, std::unique_ptr<Param> param)
-    {
+    static void add (AudioProcessorParameterGroup& group, std::unique_ptr<Param> param) {
         group.addChild (std::move (param));
     }
 
     template <typename Param>
-    static void add (AudioProcessorValueTreeState::ParameterLayout& group, std::unique_ptr<Param> param)
-    {
+    static void add (AudioProcessorValueTreeState::ParameterLayout& group, std::unique_ptr<Param> param) {
         group.add (std::move (param));
     }
 
     template <typename Param, typename Group, typename... Ts>
-    static Param& addToLayout (Group& layout, Ts&&... ts)
-    {
-        auto param = new Param (std::forward<Ts> (ts)...);
-        auto& ref = *param;
-        add (layout, rawToUniquePtr (param));
+    static Param& addToLayout (Group& layout, Ts&&... ts) {
+        auto   param = std::make_unique<Param> (std::forward<Ts> (ts)...);
+        Param& ref   = *param;
+        add (layout, std::move (param)); // Transfers ownership
         return ref;
     }
 
-    static String getPanningTextForValue (float value)
-    {
+    static String getPanningTextForValue (float value) {
         if (value == 0.5f)
             return "< c >";
 
@@ -40,8 +36,7 @@ namespace moiraesoftware
         return String (roundToInt ((value - 0.5f) * 200.0f)) + "%R";
     }
 
-    static float getPanningValueForText (String strText)
-    {
+    static float getPanningValueForText (String strText) {
         strText = strText.trim().toLowerCase();
 
         if (strText == "center" || strText == "c" || strText == "< c >")
@@ -64,53 +59,28 @@ namespace moiraesoftware
 
     static String valueToText (float x, int) { return { x, 2 }; }
 
-    static float textToValue (const String& str) { return str.getFloatValue(); }
+    static float  textToValue (const String& str) { return str.getFloatValue(); }
 
-    static auto getBasicAttributes()
-    {
+    static auto   getBasicAttributes() {
         return Attributes().withStringFromValueFunction (valueToText).withValueFromStringFunction (textToValue);
     }
 
-    static auto getDbAttributes()
-    {
-        return getBasicAttributes().withLabel ("dB");
-    }
+    static auto   getDbAttributes() { return getBasicAttributes().withLabel ("dB"); }
 
-    static auto getMsAttributes()
-    {
-        return getBasicAttributes().withLabel ("ms");
-    }
+    static auto   getMsAttributes() { return getBasicAttributes().withLabel ("ms"); }
 
-    static auto getHzAttributes()
-    {
-        return getBasicAttributes().withLabel ("Hz");
-    }
+    static auto   getHzAttributes() { return getBasicAttributes().withLabel ("Hz"); }
 
-    static auto getPercentageAttributes()
-    {
-        return getBasicAttributes().withLabel ("%");
-    }
+    static auto   getPercentageAttributes() { return getBasicAttributes().withLabel ("%"); }
 
-    static auto getRatioAttributes()
-    {
-        return getBasicAttributes().withLabel (":1");
-    }
+    static auto   getRatioAttributes() { return getBasicAttributes().withLabel (":1"); }
 
-    static String valueToTextPan (float x, int)
-    {
-        return getPanningTextForValue ((x + 100.0f) / 200.0f);
-    }
+    static String valueToTextPan (float x, int) { return getPanningTextForValue ((x + 100.0f) / 200.0f); }
 
-    static float textToValuePan (const String& str)
-    {
-        return getPanningValueForText (str) * 200.0f - 100.0f;
-    }
+    static float  textToValuePan (const String& str) { return getPanningValueForText (str) * 200.0f - 100.0f; }
 
-    static auto getPanningAttributes()
-    {
-        return Attributes()
-            .withStringFromValueFunction (valueToTextPan)
-            .withValueFromStringFunction (textToValuePan);
+    static auto   getPanningAttributes() {
+        return Attributes().withStringFromValueFunction (valueToTextPan).withValueFromStringFunction (textToValuePan);
     }
 
     //Used like this
