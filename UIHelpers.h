@@ -454,6 +454,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     public:
         ComboWithItems& getCombo() { return combo; }
+        ComboBoxParameterAttachment& getAttachment() { return attachment; }
     };
 
     struct GetTrackInfo {
