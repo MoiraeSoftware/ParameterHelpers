@@ -262,6 +262,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
     public:
         AttachedSlider (AudioProcessorEditor& editorIn,
                         RangedAudioParameter& paramIn,
+                        UndoManager*          undoManager,
                         SuffixDisplay         suffix = Always,
                         Slider::SliderStyle   style  = Slider::RotaryVerticalDrag) :
             ComponentWithParamMenu (editorIn, paramIn),
@@ -393,6 +394,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         RadioButtonParameterAttachment attachment;
     };
 
+              typename   = typename std::enable_if<std::is_base_of<ImageButton, T>::value>::type>
     class AttachedImageButton : public ComponentWithParamMenu {
     public:
         AttachedImageButton (AudioProcessorEditor& editorIn, RangedAudioParameter& paramIn) :
@@ -406,7 +408,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
         void resized() override { button.setBounds (getLocalBounds()); }
 
-        ImageButton& getButton() { return button; }
+        T& getButton() { return button; }
 
         ButtonParameterAttachment& getAttachment() { return attachment; }
 
@@ -416,7 +418,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     private:
         RangedAudioParameter&     param;
-        ImageButton               button;
+        T                         button;
         ButtonParameterAttachment attachment;
     };
 
