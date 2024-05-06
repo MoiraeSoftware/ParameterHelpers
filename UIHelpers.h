@@ -366,11 +366,24 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                 buttons.begin(), buttons.end(), [this] (Button* button) { button->removeMouseListener (this); });
         }
 
-        //    void resized() override {
-        //        auto buttons = attachment.getButtons();
-        //        std::for_each(buttons.begin(), buttons.end(),
-        //                      [this](Button *button) { button->setBounds(getLocalBounds()); });
-        //    }
+#if DEBUG
+        void paint (Graphics& g) override {
+            auto buttons = attachment.getButtons();
+            std::for_each (buttons.begin(), buttons.end(), [this, &g] (Button* button) {
+                g.setColour (Colours::yellowgreen);
+                g.drawRect (button->getBounds(), 1);
+            });
+        }
+#endif
+
+        //        void resized() override {
+        //            auto buttons = attachment.getButtons();
+        //            auto lb = getLocalBounds();
+        //            std::for_each (
+        //                buttons.begin(), buttons.end(), [this, &lb] (Button* button) {
+        //                    button->setBounds (lb);
+        //                });
+        //        }
 
         Button* getButtonAtIndex (int i) { return attachment.getButton (i); }
 
