@@ -74,13 +74,13 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         RadioButtonParameterAttachment (RangedAudioParameter&    param,
                                         Array<Button*>&          _buttons,
                                         int                      groupID,
-                                        RadioButtonParameterType type = RadioButtonParameterType::IndexBased,
-                                        UndoManager*             um   = nullptr) :
+                                        UndoManager*             undoManager,
+                                        RadioButtonParameterType type = RadioButtonParameterType::IndexBased) :
             storedParameter (param),
             attachment (
                 param,
                 [this] (float newValue) { setValue (newValue); },
-                um),
+                undoManager),
             radioButtonType (type) {
             for (int i = 0; i < _buttons.size(); ++i) {
                 auto button = _buttons.getUnchecked (i);
@@ -268,7 +268,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             ComponentWithParamMenu (editorIn, paramIn),
             slider { Slider::RotaryVerticalDrag, Slider::TextBoxBelow },
             label ("", paramIn.name),
-            attachment (paramIn, slider),
+            attachment (paramIn, slider, undoManager),
             suffixDisplay (suffix) {
             slider.addMouseListener (this, true);
             addAllAndMakeVisible (*this, slider, label);
@@ -353,8 +353,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                               RangedAudioParameter&    paramIn,
                               Array<Button*>&          buttons,
                               int                      groupId,
+                              UndoManager*             um,
                               RadioButtonParameterType radioType) :
-            ComponentWithParamMenu (editorIn, paramIn), attachment (paramIn, buttons, groupId, radioType) {
+            ComponentWithParamMenu (editorIn, paramIn), attachment (paramIn, buttons, groupId, um, radioType) {
             std::for_each (buttons.begin(), buttons.end(), [this] (Button* b) {
                 b->addMouseListener (this, true);
                 addAndMakeVisible (b);
@@ -394,14 +395,15 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         RadioButtonParameterAttachment attachment;
     };
 
+    template <typename T = ImageButton,
               typename   = typename std::enable_if<std::is_base_of<ImageButton, T>::value>::type>
     class AttachedImageButton : public ComponentWithParamMenu {
     public:
-        AttachedImageButton (AudioProcessorEditor& editorIn, RangedAudioParameter& paramIn) :
+        AttachedImageButton (AudioProcessorEditor& editorIn, RangedAudioParameter& paramIn, UndoManager* undoManager) :
             ComponentWithParamMenu (editorIn, paramIn),
             param (paramIn),
             button (paramIn.name),
-            attachment (paramIn, button) {
+            attachment (paramIn, button, undoManager) {
             button.addMouseListener (this, true);
             addAndMakeVisible (button);
         }
@@ -424,11 +426,11 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     class AttachedCombo : public ComponentWithParamMenu {
     public:
-        AttachedCombo (AudioProcessorEditor& editorIn, RangedAudioParameter& paramIn) :
+        AttachedCombo (AudioProcessorEditor& editorIn, RangedAudioParameter& paramIn, UndoManager* undoManager) :
             ComponentWithParamMenu (editorIn, paramIn),
             combo (paramIn),
             label ("", paramIn.name),
-            attachment (paramIn, combo) {
+            attachment (paramIn, combo, undoManager) {
             combo.addMouseListener (this, true);
             combo.setJustificationType (Justification::centred);
             addAllAndMakeVisible (*this, combo, label);
