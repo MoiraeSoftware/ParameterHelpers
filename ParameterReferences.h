@@ -4,17 +4,16 @@
 
 namespace moiraesoftware
 {
-    using namespace juce;
-    using Parameter  = AudioProcessorValueTreeState::Parameter;
-    using Attributes = AudioProcessorValueTreeStateParameterAttributes;
+    using Parameter  = juce::AudioProcessorValueTreeState::Parameter;
+    using Attributes = juce::AudioProcessorValueTreeStateParameterAttributes;
 
     template <typename Param>
-    static void add (AudioProcessorParameterGroup& group, std::unique_ptr<Param> param) {
+    static void add (juce::AudioProcessorParameterGroup& group, std::unique_ptr<Param> param) {
         group.addChild (std::move (param));
     }
 
     template <typename Param>
-    static void add (AudioProcessorValueTreeState::ParameterLayout& group, std::unique_ptr<Param> param) {
+    static void add (juce::AudioProcessorValueTreeState::ParameterLayout& group, std::unique_ptr<Param> param) {
         group.add (std::move (param));
     }
 
@@ -26,17 +25,17 @@ namespace moiraesoftware
         return ref;
     }
 
-    static String getPanningTextForValue (float value) {
+    static juce::String getPanningTextForValue (float value) {
         if (value == 0.5f)
             return "< c >";
 
         if (value < 0.5f)
-            return String (roundToInt ((0.5f - value) * 200.0f)) + "%L";
+            return juce::String (juce::roundToInt ((0.5f - value) * 200.0f)) + "%L";
 
-        return String (roundToInt ((value - 0.5f) * 200.0f)) + "%R";
+        return juce::String (juce::roundToInt ((value - 0.5f) * 200.0f)) + "%R";
     }
 
-    static float getPanningValueForText (String strText) {
+    static float getPanningValueForText (juce::String strText) {
         strText = strText.trim().toLowerCase();
 
         if (strText == "center" || strText == "c" || strText == "< c >")
@@ -57,9 +56,9 @@ namespace moiraesoftware
         return 0.5f;
     }
 
-    static String valueToText (float x, int) { return { x, 2 }; }
+    static juce::String valueToText (float x, int) { return { x, 2 }; }
 
-    static float  textToValue (const String& str) { return str.getFloatValue(); }
+    static float  textToValue (const juce::String& str) { return str.getFloatValue(); }
 
     static auto   getBasicAttributes() {
         return Attributes().withStringFromValueFunction (valueToText).withValueFromStringFunction (textToValue);
@@ -75,9 +74,9 @@ namespace moiraesoftware
 
     static auto   getRatioAttributes() { return getBasicAttributes().withLabel (":1"); }
 
-    static String valueToTextPan (float x, int) { return getPanningTextForValue ((x + 100.0f) / 200.0f); }
+    static juce::String valueToTextPan (float x, int) { return getPanningTextForValue ((x + 100.0f) / 200.0f); }
 
-    static float  textToValuePan (const String& str) { return getPanningValueForText (str) * 200.0f - 100.0f; }
+    static float  textToValuePan (const juce::String& str) { return getPanningValueForText (str) * 200.0f - 100.0f; }
 
     static auto   getPanningAttributes() {
         return Attributes().withStringFromValueFunction (valueToTextPan).withValueFromStringFunction (textToValuePan);
