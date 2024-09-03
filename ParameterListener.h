@@ -5,7 +5,7 @@
 namespace moiraesoftware
 {
 
-    struct ParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    struct ParameterListener : juce::AudioProcessorValueTreeState::Listener
     {
         explicit ParameterListener (std::atomic<bool>& needsUpdate) : updateNeeded (needsUpdate) {}
 
