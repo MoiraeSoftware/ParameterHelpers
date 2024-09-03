@@ -66,7 +66,7 @@ To implement a new attachment type, create a new class which includes an instanc
  * calling either setValueAsCompleteGesture or beginGesture, setValueAsPartOfGesture and endGesture.
 Make sure to call sendInitialUpdate at the end of your new attachment's constructor, so that the UI immediately
  reflects the state of the parameter.*/
-    class RadioButtonParameterAttachment : private juce::Button::Listener {
+    class RadioButtonParameterAttachment : juce::Button::Listener {
     public:
         //     Creates a connection between a plug-in parameter and some radio buttons.
         RadioButtonParameterAttachment (juce::RangedAudioParameter& param,
