@@ -2,9 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-namespace moiraesoftware
-{
-    using Parameter  = juce::AudioProcessorValueTreeState::Parameter;
+namespace moiraesoftware{
     using Attributes = juce::AudioProcessorValueTreeStateParameterAttributes;
 
     template <typename Param>
