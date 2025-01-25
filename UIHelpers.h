@@ -250,12 +250,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
     private:
         juce::AudioProcessorEditor& editor;
         juce::RangedAudioParameter& param;
-
-    public:
-        const juce::RangedAudioParameter& getParameter() { return param; }
     };
 
-    enum SuffixDisplay { OffOnMinimum, OffOnMaximum, Always, Never };
+    enum SuffixDisplay { OffOnMinimum, OffOnMaximum, Always, Never, Zero };
 
     class AttachedSlider : public ComponentWithParamMenu {
     public:
@@ -304,6 +301,12 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                 case Never:
                     ClearSuffix();
                     break;
+                case Zero:
+                    if ( juce::approximatelyEqual (static_cast<float> (value.getValue()), 0.0f)) {
+                        ClearSuffix();
+                    } else {
+                        SetDefaultSuffix();
+                    }
             }
         }
 
