@@ -1,5 +1,7 @@
 #pragma once
 
+#include "melatonin_parameters/melatonin_parameters.h"
+
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace moiraesoftware{
@@ -23,62 +25,146 @@ namespace moiraesoftware{
         return ref;
     }
 
-    static juce::String getPanningTextForValue (float value) {
-        if (value == 0.5f)
-            return "< c >";
-
-        if (value < 0.5f)
-            return juce::String (juce::roundToInt ((0.5f - value) * 200.0f)) + "%L";
-
-        return juce::String (juce::roundToInt ((value - 0.5f) * 200.0f)) + "%R";
+    static juce::String valueToText (float x, int decimalPlaces) {
+        return { x, decimalPlaces };
     }
 
-    static float getPanningValueForText (juce::String strText) {
-        strText = strText.trim().toLowerCase();
+    static float textToValue (const juce::String& str) {
+        auto trimmed = str.trim().toLowerCase();
+        return str.getFloatValue();
+    }
+
+    static auto getBasicAttributes(int decimalPlaces = 2) {
+        return Attributes()
+            .withStringFromValueFunction (valueToText)
+            .withValueFromStringFunction (textToValue);
+    }
+
+    static inline auto stringFromPanValue = [](float value, [[maybe_unused]] int maximumStringLength = 5) {
+        float v = (value + 100.0f) / 200.0f;
+
+        if (v == 0.5f)
+            return juce::String ("< C >");
+
+        const auto percentage = juce::roundToInt (std::abs (0.5f - v) * 200.0f);
+        return v < 0.5f
+                   ? "L " + juce::String (percentage) + " "
+                   : " " + juce::String (percentage) + " R";
+    };
+
+    static inline auto panFromString = [](const juce::String& text) {
+        auto strText = text.trim().toLowerCase();
 
         if (strText == "center" || strText == "c" || strText == "< c >")
             return 0.5f;
 
-        if (strText.endsWith ("%l"))
-        {
-            float percentage = strText.substring (0, strText.indexOf ("%")).getFloatValue();
-            return (100.0f - percentage) / 100.0f * 0.5f;
+        if (strText.startsWithChar ('l')) {
+            const float percentage = strText.substring (2).trim().getFloatValue();
+            return 0.5f * (1.0f - percentage / 100.0f);
         }
 
-        if (strText.endsWith ("%r"))
-        {
-            float percentage = strText.substring (0, strText.indexOf ("%")).getFloatValue();
-            return percentage / 100.0f * 0.5f + 0.5f;
+        if (strText.endsWithChar ('r')) {
+            const float percentage = strText.dropLastCharacters (1).trim().getFloatValue();
+            return 0.5f * (1.0f + percentage / 100.0f);
         }
 
         return 0.5f;
+    };
+
+    static auto makeStringFromValueWithOffAt(float offValue, const juce::String& label) {
+        return [offValue, label](float value, [[maybe_unused]] int maximumStringLength = 5) {
+            if (juce::approximatelyEqual(value, offValue))
+                return juce::String("OFF");
+            return juce::String(value, 1) + label;
+        };
     }
 
-    static juce::String valueToText (float x, int) { return { x, 2 }; }
-
-    static float  textToValue (const juce::String& str) { return str.getFloatValue(); }
-
-    static auto   getBasicAttributes() {
-        return Attributes().withStringFromValueFunction (valueToText).withValueFromStringFunction (textToValue);
+    static auto makeFromStringWithOffAt(float offValue, const juce::String& label) {
+        return [offValue, label](const juce::String& text) {
+            if (text.toLowerCase() == "off")
+                return offValue;
+            if (text.endsWith(label))
+                return text.dropLastCharacters(2).getFloatValue();
+            return text.getFloatValue();
+        };
     }
 
-    static auto   getDbAttributes() { return getBasicAttributes().withLabel ("dB"); }
-
-    static auto   getMsAttributes() { return getBasicAttributes().withLabel ("ms"); }
-
-    static auto   getHzAttributes() { return getBasicAttributes().withLabel ("Hz"); }
-
-    static auto   getPercentageAttributes() { return getBasicAttributes().withLabel ("%"); }
-
-    static auto   getRatioAttributes() { return getBasicAttributes().withLabel (":1"); }
-
-    static juce::String valueToTextPan (float x, int) { return getPanningTextForValue ((x + 100.0f) / 200.0f); }
-
-    static float  textToValuePan (const juce::String& str) { return getPanningValueForText (str) * 200.0f - 100.0f; }
-
-    static auto   getPanningAttributes() {
-        return Attributes().withStringFromValueFunction (valueToTextPan).withValueFromStringFunction (textToValuePan);
+    static auto makeStringFromValueWithFrequency() {
+        return [](float value, [[maybe_unused]] int maximumStringLength = 5) {
+            if (value >= 1000.0f) {
+                // For kHz range, divide by 1000 and show 2 decimal places
+                return juce::String(value / 1000.0f, 2) + "kHz";
+            }
+            // For Hz range, show 1 decimal place
+            return juce::String(value, 1) + "Hz";
+        };
     }
+
+    static auto makeFromStringWithFrequency() {
+        return [](const juce::String& text) {
+            auto lowerText = text.toLowerCase();
+
+            if (lowerText.endsWith("khz")) {
+                // Handle kHz input - multiply by 1000
+                return text.dropLastCharacters(3).getFloatValue() * 1000.0f;
+            }
+            if (lowerText.endsWith("hz")) {
+                // Handle Hz input
+                return text.dropLastCharacters(2).getFloatValue();
+            }
+            // If no unit specified, assume Hz
+            return text.getFloatValue();
+        };
+    }
+
+    static auto makeStringFromValueWithFrequencyWithOffAt(float offValue, bool noRoundingOnHz = false) {
+        return [offValue, noRoundingOnHz](float value, [[maybe_unused]] int maximumStringLength = 5) {
+            if (juce::approximatelyEqual(value, offValue))
+                return juce::String("OFF");
+            if (value >= 1000.0f) {
+                // For kHz range, divide by 1000 and show 2 decimal places
+                return juce::String(value / 1000.0f, 2) + "kHz";
+            }
+            // For Hz range, show 1 decimal place
+            if  (noRoundingOnHz)
+                return juce::String(value, 0) + "Hz";
+            else return juce::String(value, 1) + "Hz";
+        };
+    }
+
+    static auto makeFromStringWithFrequencyWithOffAt( float offValue) {
+        return [offValue](const juce::String& text) {
+            auto lowerText = text.toLowerCase();
+
+            if (text.toLowerCase() == "off")
+                return offValue;
+
+            if (lowerText.endsWith("khz")) {
+                // Handle kHz input - multiply by 1000
+                return text.dropLastCharacters(3).getFloatValue() * 1000.0f;
+            }
+            if (lowerText.endsWith("hz")) {
+                // Handle Hz input
+                return text.dropLastCharacters(2).getFloatValue();
+            }
+            // If no unit specified, assume Hz
+            return text.getFloatValue();
+        };
+    }
+
+    static inline auto stringFromDBValue = [] (float value, [[maybe_unused]] int maximumStringLength = 5) {
+        // only 1 decimal place for db values
+        return juce::String (value, 1) + "dB";
+    };
+
+    static inline auto dBFromString = [] (const juce::String& text) {
+        if (text.endsWith ("db"))
+        {
+            return text.dropLastCharacters (2).getFloatValue();
+        }
+        else
+            return text.getFloatValue();
+    };
 
     //Used like this
     //struct MainGroup {
