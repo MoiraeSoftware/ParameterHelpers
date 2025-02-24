@@ -117,18 +117,15 @@ namespace moiraesoftware{
         };
     }
 
-    static auto makeStringFromValueWithFrequencyWithOffAt(float offValue, bool noRoundingOnHz = false) {
-        return [offValue, noRoundingOnHz](float value, [[maybe_unused]] int maximumStringLength = 5) {
+    static auto makeStringFromValueWithFrequencyWithOffAt(float offValue, int hzDecimalPlaces = 1, int khzDecimalPlaces = 2) {
+        return [offValue, khzDecimalPlaces, hzDecimalPlaces] (float value, [[maybe_unused]] int maximumStringLength = 5) {
             if (juce::approximatelyEqual(value, offValue))
                 return juce::String("OFF");
             if (value >= 1000.0f) {
                 // For kHz range, divide by 1000 and show 2 decimal places
-                return juce::String(value / 1000.0f, 2) + "kHz";
+                return juce::String(value / 1000.0f, khzDecimalPlaces) + "kHz";
             }
-            // For Hz range, show 1 decimal place
-            if  (noRoundingOnHz)
-                return juce::String(value, 0) + "Hz";
-            else return juce::String(value, 1) + "Hz";
+            return juce::String(value, hzDecimalPlaces) + "Hz";
         };
     }
 
