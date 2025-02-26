@@ -163,6 +163,15 @@ namespace moiraesoftware{
             return text.getFloatValue();
     };
 
+    static inline auto stringFromValue = [] (float value, [[maybe_unused]] int maximumStringLength = 5) {
+        // only 1 decimal place for db values
+        return juce::String (value, 1);
+    };
+
+    static inline auto valueFromString = [] (const juce::String& text) {
+        return text.getFloatValue();
+    };
+
     //Used like this
     //struct MainGroup {
     //public:
