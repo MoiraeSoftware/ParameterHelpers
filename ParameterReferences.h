@@ -55,19 +55,38 @@ namespace moiraesoftware{
     static inline auto panFromString = [](const juce::String& text) {
         auto strText = text.trim().toLowerCase();
 
-        if (strText == "center" || strText == "c" || strText == "< c >")
+        // 1. Handle center/legacy cases first
+        if (strText == "center" || strText == "c" || strText == "< c >" || strText == "<c>" || strText == "0")
             return 0.5f;
 
-        if (strText.startsWithChar ('l')) {
-            const float percentage = strText.substring (2).trim().getFloatValue();
-            return 0.5f * (1.0f - percentage / 100.0f);
+        if (strText.startsWithChar('l'))
+            return 0.5f * (1.0f - juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue()) / 100.0f);
+
+        if (strText.startsWithChar('r'))
+            return 0.5f * (1.0f + juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue()) / 100.0f);
+
+        if (strText.endsWithChar('r'))
+            return 0.5f * (1.0f + juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue()) / 100.0f);
+
+        if (strText.endsWithChar('l'))
+            return 0.5f * (1.0f - juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue()) / 100.0f);
+
+        // 2. Parse as number
+        bool isNumber = strText.containsOnly("-+0123456789.")
+                        && !strText.startsWith("--")
+                        && strText != "-"
+                        && strText != ".";
+
+        // Inside the number parsing logic:
+        if (isNumber) {
+            float percent = strText.endsWithChar('%')
+                ? strText.dropLastCharacters(1).getFloatValue()
+                : strText.getFloatValue();
+            percent = juce::jlimit(-100.0f, 100.0f, percent); // Clamp
+            return 0.5f * (1.0f + percent / 100.0f); // -100%→0.0, 100%→1.0
         }
 
-        if (strText.endsWithChar ('r')) {
-            const float percentage = strText.dropLastCharacters (1).trim().getFloatValue();
-            return 0.5f * (1.0f + percentage / 100.0f);
-        }
-
+        // Default to center
         return 0.5f;
     };
 
