@@ -108,65 +108,65 @@ namespace moiraesoftware{
         };
     }
 
-    static auto makeStringFromValueWithFrequency() {
-        return [](float value, [[maybe_unused]] int maximumStringLength = 5) {
-            if (value >= 1000.0f) {
-                // For kHz range, divide by 1000 and show 2 decimal places
-                return juce::String(value / 1000.0f, 2) + "kHz";
-            }
-            // For Hz range, show 1 decimal place
-            return juce::String(value, 1) + "Hz";
-        };
+
+    namespace FrequencyUnit {
+        struct Hz {};  // Tag for Hz-default mode
+        struct kHz {}; // Tag for kHz-default mode
     }
 
+    template <typename Unit = FrequencyUnit::Hz>
     static auto makeFromStringWithFrequency() {
-        return [](const juce::String& text) {
-            auto lowerText = text.toLowerCase();
+        return [](const juce::String& text) -> float {
+            auto lowerText = text.toLowerCase().trim().removeCharacters(" ");
 
-            if (lowerText.endsWith("khz")) {
-                // Handle kHz input - multiply by 1000
-                return text.dropLastCharacters(3).getFloatValue() * 1000.0f;
+            if (lowerText.endsWith("khz") || lowerText.endsWith("k")) {
+                int suffixLength = lowerText.endsWith("khz") ? 3 : 1;
+                return lowerText.dropLastCharacters(suffixLength).getFloatValue() * 1000.0f;
             }
-            if (lowerText.endsWith("hz")) {
-                // Handle Hz input
-                return text.dropLastCharacters(2).getFloatValue();
+            else if (lowerText.endsWith("hz")) {
+                return lowerText.dropLastCharacters(2).getFloatValue();
             }
-            // If no unit specified, assume Hz
-            return text.getFloatValue();
+            // Default behavior based on unit tag
+            if constexpr (std::is_same_v<Unit, FrequencyUnit::kHz>) {
+                return lowerText.getFloatValue() * 1000.0f; // "8" → 8000
+            } else {
+                return lowerText.getFloatValue(); // "20" → 20
+            }
         };
     }
 
+    template <typename Unit = FrequencyUnit::Hz>
+    static auto makeStringFromValueWithFrequency(int hzDecimalPlaces = 1, int khzDecimalPlaces = 2) {
+        return [hzDecimalPlaces, khzDecimalPlaces](float value) -> juce::String {
+            if constexpr (std::is_same_v<Unit, FrequencyUnit::kHz>) {
+                if (value >= 1000.0f) {
+                    return juce::String(value / 1000.0f, khzDecimalPlaces) + " kHz";
+                }
+            }
+            return juce::String(value, hzDecimalPlaces) + " Hz";
+        };
+    }
+
+    template <typename Unit = FrequencyUnit::Hz>
+    static auto makeFromStringWithFrequencyWithOffAt(float offValue) {
+        return [offValue](const juce::String& text) -> float {
+            auto lowerText = text.toLowerCase().trim();
+            if (lowerText == "off") return offValue;
+            return makeFromStringWithFrequency<Unit>()(text); // Reuse unit-aware parser
+        };
+    }
+
+    // Ensure the lambda function matches the expected type
+    template <typename Unit = FrequencyUnit::Hz>
     static auto makeStringFromValueWithFrequencyWithOffAt(float offValue, int hzDecimalPlaces = 1, int khzDecimalPlaces = 2) {
-        return [offValue, khzDecimalPlaces, hzDecimalPlaces] (float value, [[maybe_unused]] int maximumStringLength = 5) {
-            if (juce::approximatelyEqual(value, offValue))
-                return juce::String("OFF");
-            if (value >= 1000.0f) {
-                // For kHz range, divide by 1000 and show 2 decimal places
-                return juce::String(value / 1000.0f, khzDecimalPlaces) + "kHz";
+        return [offValue, hzDecimalPlaces, khzDecimalPlaces](float value, int /*maximumStringLength*/) -> juce::String {
+            if (juce::approximatelyEqual(value, offValue)) {
+                return "OFF";
             }
-            return juce::String(value, hzDecimalPlaces) + "Hz";
+            return makeStringFromValueWithFrequency<Unit>(hzDecimalPlaces, khzDecimalPlaces)(value);
         };
     }
 
-    static auto makeFromStringWithFrequencyWithOffAt( float offValue) {
-        return [offValue](const juce::String& text) {
-            auto lowerText = text.toLowerCase();
-
-            if (text.toLowerCase() == "off")
-                return offValue;
-
-            if (lowerText.endsWith("khz")) {
-                // Handle kHz input - multiply by 1000
-                return text.dropLastCharacters(3).getFloatValue() * 1000.0f;
-            }
-            if (lowerText.endsWith("hz")) {
-                // Handle Hz input
-                return text.dropLastCharacters(2).getFloatValue();
-            }
-            // If no unit specified, assume Hz
-            return text.getFloatValue();
-        };
-    }
 
     static inline auto stringFromDBValue = [] (float value, [[maybe_unused]] int maximumStringLength = 5) {
         // only 1 decimal place for db values
