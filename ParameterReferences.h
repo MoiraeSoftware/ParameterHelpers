@@ -53,42 +53,67 @@ namespace moiraesoftware{
     };
 
     static inline auto panFromString = [](const juce::String& text) {
-        auto strText = text.trim().toLowerCase();
+        const auto strText = text.trim().toLowerCase();
+        const int len = strText.length();
 
-        // 1. Handle center/legacy cases first
-        if (strText == "center" || strText == "c" || strText == "< c >" || strText == "<c>" || strText == "0")
-            return 0.5f;
+        // 1. Handle center/legacy cases
+        if (strText == "center" || strText == "c" || strText == "<c>" || strText == "< c >" || strText == "0")
+            return 0.0f;
 
-        if (strText.startsWithChar('l'))
-            return 0.5f * (1.0f - juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue()) / 100.0f);
-
-        if (strText.startsWithChar('r'))
-            return 0.5f * (1.0f + juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue()) / 100.0f);
-
-        if (strText.endsWithChar('r'))
-            return 0.5f * (1.0f + juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue()) / 100.0f);
-
-        if (strText.endsWithChar('l'))
-            return 0.5f * (1.0f - juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue()) / 100.0f);
-
-        // 2. Parse as number
-        bool isNumber = strText.containsOnly("-+0123456789.")
-                        && !strText.startsWith("--")
-                        && strText != "-"
-                        && strText != ".";
-
-        // Inside the number parsing logic:
-        if (isNumber) {
-            float percent = strText.endsWithChar('%')
-                ? strText.dropLastCharacters(1).getFloatValue()
-                : strText.getFloatValue();
-            percent = juce::jlimit(-100.0f, 100.0f, percent); // Clamp
-            return 0.5f * (1.0f + percent / 100.0f); // -100%→0.0, 100%→1.0
+        // 2. Shorthand for full left/right
+        if (len == 1) {
+            if (strText[0] == 'l') return -100.0f;
+            if (strText[0] == 'r') return 100.0f;
         }
 
-        // Default to center
-        return 0.5f;
+        // 3. Direction with number
+        if (strText.startsWithChar('l') && len > 1)
+            return -juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue());
+
+        if (strText.startsWithChar('r') && len > 1)
+            return juce::jlimit(0.0f, 100.0f, strText.substring(1).getFloatValue());
+
+        if (strText.endsWithChar('l') && len > 1)
+            return -juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue());
+
+        if (strText.endsWithChar('r') && len > 1)
+            return juce::jlimit(0.0f, 100.0f, strText.dropLastCharacters(1).getFloatValue());
+
+        // 4. Number or % format
+        bool isPercentage = strText.endsWithChar('%');
+        auto numberText = isPercentage ? strText.dropLastCharacters(1) : strText;
+
+        // Validate float format
+        bool hasDigits = false;
+        bool hasDot = false;
+
+        for (int i = 0; i < numberText.length(); ++i) {
+            const auto c = numberText[i];
+
+            if (i == 0 && (c == '-' || c == '+')) {
+                continue;
+            }
+            if (juce::CharacterFunctions::isDigit(c)) {
+                hasDigits = true;
+                continue;
+            }
+            if (c == '.' && !hasDot) {
+                hasDot = true;
+                continue;
+            }
+
+            // Invalid character or multiple dots
+            return 0.0f;
+        }
+
+        if (hasDigits) {
+            return juce::jlimit(-100.0f, 100.0f, numberText.getFloatValue());
+        }
+
+        return 0.0f;
     };
+
+
 
     static auto makeStringFromValueWithOffAt(float offValue, const juce::String& label) {
         return [offValue, label](float value, [[maybe_unused]] int maximumStringLength = 5) {
