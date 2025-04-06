@@ -25,21 +25,6 @@ namespace moiraesoftware{
         return ref;
     }
 
-    static juce::String valueToText (float x, int decimalPlaces) {
-        return { x, decimalPlaces };
-    }
-
-    static float textToValue (const juce::String& str) {
-        auto trimmed = str.trim().toLowerCase();
-        return str.getFloatValue();
-    }
-
-    static auto getBasicAttributes(int decimalPlaces = 2) {
-        return Attributes()
-            .withStringFromValueFunction (valueToText)
-            .withValueFromStringFunction (textToValue);
-    }
-
     static inline auto stringFromPanValue = [](float value, [[maybe_unused]] int maximumStringLength = 5) {
         float v = (value + 100.0f) / 200.0f;
 

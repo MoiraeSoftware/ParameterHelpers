@@ -30,8 +30,7 @@ namespace moiraesoftware {
         forEach ([&] (auto& proc) { proc.process (context); }, processors...);
     }
 
-    static juce::Rectangle<int>
-        extractTileByNumber (const juce::Image& mosaic, int tileWidth, int tileHeight, int n) {
+    inline juce::Rectangle<int> extractTileByNumber (const juce::Image& mosaic, int tileWidth, int tileHeight, int n) {
         int numColumns = mosaic.getWidth() / tileWidth;
 
         // Calculate row and column for the image n (0-based index n)
@@ -46,15 +45,7 @@ namespace moiraesoftware {
         return { x, y, tileWidth, tileHeight };
     }
 
-    static juce::Rectangle<int>
-        extractTileByRowColumn (const juce::Image& mosaic, int tileWidth, int tileHeight, int row, int column) {
-        // Calculate the coordinates of the desired tile
-        int x = column * tileWidth;
-        int y = row * tileHeight;
 
-        // Return the desired tile from the mosaic
-        return { x, y, tileWidth, tileHeight };
-    }
 
     enum class RadioButtonParameterType { IndexBased, ComponentIdBased };
 
