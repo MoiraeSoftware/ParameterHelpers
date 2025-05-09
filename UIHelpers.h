@@ -30,7 +30,8 @@ namespace moiraesoftware {
         forEach ([&] (auto& proc) { proc.process (context); }, processors...);
     }
 
-    inline juce::Rectangle<int> extractTileByNumber (const juce::Image& mosaic, int tileWidth, int tileHeight, int n) {
+    inline juce::Rectangle<int>
+        extractTileByNumber (const juce::Image& mosaic, int tileWidth, int tileHeight, int n) {
         int numColumns = mosaic.getWidth() / tileWidth;
 
         // Calculate row and column for the image n (0-based index n)
@@ -45,8 +46,6 @@ namespace moiraesoftware {
         return { x, y, tileWidth, tileHeight };
     }
 
-
-
     enum class RadioButtonParameterType { IndexBased, ComponentIdBased };
 
     /*
@@ -60,15 +59,15 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
     class RadioButtonParameterAttachment : juce::Button::Listener {
     public:
         //     Creates a connection between a plug-in parameter and some radio buttons.
-        RadioButtonParameterAttachment (juce::RangedAudioParameter& param,
-                                        juce::Array<juce::Button*>& _buttons,
-                                        int                         groupID,
-                                        juce::UndoManager*          undoManager,
-                                        RadioButtonParameterType    type = RadioButtonParameterType::IndexBased) :
+        RadioButtonParameterAttachment (juce::RangedAudioParameter&       param,
+                                        const juce::Array<juce::Button*>& _buttons,
+                                        const int                         groupID,
+                                        juce::UndoManager*                undoManager,
+                                        const RadioButtonParameterType type = RadioButtonParameterType::IndexBased) :
             storedParameter (param),
             attachment (
                 param,
-                [this] (float newValue) { setValue (newValue); },
+                [this] (const float newValue) { setValue (newValue); },
                 undoManager),
             radioButtonType (type) {
             for (int i = 0; i < _buttons.size(); ++i) {
@@ -92,14 +91,14 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             }
         }
 
-        juce::Button* getButton (int index) { return buttons.getUnchecked (index); }
+        juce::Button* getButton (const int index) const { return buttons.getUnchecked (index); }
 
         juce::Array<juce::Component::SafePointer<juce::Button>> getButtons() { return buttons; }
 
-        int numButtons() { return buttons.size(); }
+        int numButtons() const { return buttons.size(); }
 
         // place all buttons in a row with specified margin
-        void setBounds (int x, int y, int width, int height, int margin) {
+        void setBounds (const int x, const int y, const int width, const int height, const int margin) const {
             for (int i = 0; i < buttons.size(); i++) {
                 buttons.getUnchecked (i)->setBounds (x + margin * i, y, width, height);
             }
@@ -118,7 +117,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             for (int i = 0; i < buttons.size(); i++) {
                 if (b == buttons.getUnchecked (i) && b->getToggleState()) {
                     //the value to set comes from the buttons index in the array 0-<no of buttons>
-                    auto newValue = static_cast<float> (i);
+                    const auto newValue = static_cast<float> (i);
                     attachment.setValueAsCompleteGesture (newValue);
                 }
             }
@@ -128,9 +127,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             const juce::ScopedValueSetter<bool> svs (ignoreCallbacks, true);
             {
                 auto is_valueMatch = [this] (juce::Component::SafePointer<juce::Button> b) {
-                    auto componentName            = b->getName();
-                    auto buttonComponentNameValue = componentName.getFloatValue();
-                    auto match                    = value == buttonComponentNameValue;
+                    const auto componentName            = b->getName();
+                    const auto buttonComponentNameValue = componentName.getFloatValue();
+                    const auto match                    = value == buttonComponentNameValue;
                     return match;
                 };
 
@@ -142,10 +141,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                     }
                 } else {
                     //There is no match so toggle all buttons to off
-                    std::for_each (
-                        buttons.begin(), buttons.end(), [this] (const juce::Component::SafePointer<juce::Button>& b) {
-                            b->setToggleState (false, juce::NotificationType::dontSendNotification);
-                        });
+                    std::ranges::for_each (buttons, [this] (const juce::Component::SafePointer<juce::Button>& b) {
+                        b->setToggleState (false, juce::NotificationType::dontSendNotification);
+                    });
                 }
             }
         }
@@ -155,8 +153,8 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                 if (b == buttons.getUnchecked (i) && b->getToggleState()) {
                     //the value to set comes from the componentId for the button, yuck!  Alternatively we could use a tuple passed in with the
                     // button, the second value in the tuple could be an enum with a value which is then cast to float, or just the float value.
-                    auto newValue      = b->getName().getFloatValue();
-                    auto existingValue = storedParameter.convertFrom0to1 (storedParameter.getValue());
+                    const auto newValue      = b->getName().getFloatValue();
+                    auto       existingValue = storedParameter.convertFrom0to1 (storedParameter.getValue());
                     if (newValue != existingValue) {
                         attachment.setValueAsCompleteGesture (newValue);
                     } else {
@@ -164,7 +162,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                         // for this.  We could assign a reset value if we ever need a default and reset.  This would onyl really be needed if
                         // the default was say 3, and when you re-clicked this radio button you wanted it to goto 0 or another value.  We can
                         // revisit this if needed...
-                        auto defaultValue = storedParameter.getDefaultValue();
+                        const auto defaultValue = storedParameter.getDefaultValue();
                         attachment.setValueAsCompleteGesture (defaultValue);
                     }
                 }
@@ -202,7 +200,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         //        if (ignoreCallbacks) {
         //            return;
         //        }
-        // state change occurs on mouse over and mouse down etc so we dont want to toggle in this callback
+        // state change occurs on mouse over and mouse down etc. So we don't want to toggle in this callback
         //        for (int i = 0; i < buttons.size(); i++) {
         //            if (b == buttons.getUnchecked(i) && b->getToggleState()) {
         //                attachment.setValueAsCompleteGesture(static_cast<float>(i));
@@ -227,8 +225,8 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
         void mouseUp (const juce::MouseEvent& e) override {
             if (e.mods.isRightButtonDown()) {
-                if (auto* c = editor.getHostContext()) {
-                    if (auto menuInfo = c->getContextMenuForParameter (&param)) {
+                if (const auto* c = editor.getHostContext()) {
+                    if (const auto menuInfo = c->getContextMenuForParameter (&param)) {
                         menuInfo->getEquivalentPopupMenu().showMenuAsync (
                             juce::PopupMenu::Options {}.withTargetComponent (this).withMousePosition());
                     }
@@ -250,7 +248,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         AttachedSlider (juce::AudioProcessorEditor& editorIn,
                         juce::RangedAudioParameter& paramIn,
                         juce::UndoManager*          undoManager,
-                        SuffixDisplay               suffix = Always,
+                        const SuffixDisplay         suffix = Always,
                         juce::Slider::SliderStyle   style  = juce::Slider::RotaryVerticalDrag) :
             ComponentWithParamMenu (editorIn, paramIn),
             slider { juce::Slider::RotaryVerticalDrag, juce::Slider::TextBoxBelow },
@@ -267,37 +265,16 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         }
 
         void UpdateSuffix() {
-            const auto value = slider.getValueObject();
-            switch (suffixDisplay) {
-                case OffOnMinimum:
-                    if (value == slider.getMinimum()) {
-                        ClearSuffix();
-                    } else {
-                        SetDefaultSuffix();
-                    }
-                    break;
+            const auto value  = slider.getValueObject();
+            const bool isMin  = value == slider.getMinimum();
+            const bool isMax  = value == slider.getMaximum();
+            const bool isZero = juce::approximatelyEqual (static_cast<float> (value.getValue()), 0.0f);
 
-                case OffOnMaximum:
-                    if (value == slider.getMaximum()) {
-                        ClearSuffix();
-                    } else {
-                        SetDefaultSuffix();
-                    }
-                    break;
-
-                case Always:
-                    SetDefaultSuffix();
-                    break;
-
-                case Never:
-                    ClearSuffix();
-                    break;
-                case Zero:
-                    if ( juce::approximatelyEqual (static_cast<float> (value.getValue()), 0.0f)) {
-                        ClearSuffix();
-                    } else {
-                        SetDefaultSuffix();
-                    }
+            if ((suffixDisplay == OffOnMinimum && isMin) || (suffixDisplay == OffOnMaximum && isMax)
+                || (suffixDisplay == Never) || (suffixDisplay == Zero && isZero)) {
+                ClearSuffix();
+            } else if (suffixDisplay != Never) {
+                SetDefaultSuffix();
             }
         }
 
@@ -341,14 +318,14 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     class AttachedRadioButtons : public ComponentWithParamMenu {
     public:
-        AttachedRadioButtons (juce::AudioProcessorEditor& editorIn,
-                              juce::RangedAudioParameter& paramIn,
-                              juce::Array<juce::Button*>& buttons,
-                              int                         groupId,
-                              juce::UndoManager*          um,
-                              RadioButtonParameterType    radioType) :
+        AttachedRadioButtons (juce::AudioProcessorEditor&    editorIn,
+                              juce::RangedAudioParameter&    paramIn,
+                              juce::Array<juce::Button*>&    buttons,
+                              const int                      groupId,
+                              juce::UndoManager*             um,
+                              const RadioButtonParameterType radioType) :
             ComponentWithParamMenu (editorIn, paramIn), attachment (paramIn, buttons, groupId, um, radioType) {
-            std::for_each (buttons.begin(), buttons.end(), [this] (juce::Button* b) {
+            std::ranges::for_each (buttons, [this] (juce::Button* b) {
                 b->addMouseListener (this, true);
                 addAndMakeVisible (b);
             });
@@ -356,9 +333,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
         ~AttachedRadioButtons() override {
             auto buttons = attachment.getButtons();
-            std::for_each (buttons.begin(), buttons.end(), [this] (juce::Button* button) {
-                button->removeMouseListener (this);
-            });
+            std::ranges::for_each (buttons, [this] (juce::Button* button) { button->removeMouseListener (this); });
         }
 
 #if DEBUG
@@ -380,7 +355,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         //                });
         //        }
 
-        juce::Button* getButtonAtIndex (int i) { return attachment.getButton (i); }
+        juce::Button* getButtonAtIndex (const int i) const { return attachment.getButton (i); }
 
         RadioButtonParameterAttachment& getAttachment() { return attachment; }
 
@@ -388,8 +363,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         RadioButtonParameterAttachment attachment;
     };
 
-    template <typename T = juce::ImageButton,
-              typename   = typename std::enable_if<std::is_base_of<juce::ImageButton, T>::value>::type>
+    template <typename T = juce::ImageButton, typename = std::enable_if_t<std::is_base_of_v<juce::ImageButton, T>>>
     class AttachedImageButton : public ComponentWithParamMenu {
     public:
         AttachedImageButton (juce::AudioProcessorEditor& editorIn,
@@ -441,7 +415,7 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         }
 
     private:
-        struct ComboWithItems : public juce::ComboBox {
+        struct ComboWithItems final : public juce::ComboBox {
             explicit ComboWithItems (juce::RangedAudioParameter& param) {
                 // Adding the list here in the constructor means that the combo
                 // is already populated when we construct the attachment below
@@ -463,26 +437,26 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     struct GetTrackInfo {
         // Combo boxes need a lot of room
-        juce::Grid::TrackInfo operator() (AttachedCombo&) const { return Px(120); }
+        juce::Grid::TrackInfo operator() (AttachedCombo&) const { return Px (120); }
 
         // Toggles are a bit smaller
-        juce::Grid::TrackInfo operator() (AttachedToggle&) const { return Px(80); }
+        juce::Grid::TrackInfo operator() (AttachedToggle&) const { return Px (80); }
 
         // Sliders take up as much room as they can
-        juce::Grid::TrackInfo operator() (AttachedSlider&) const { return Fr(1); }
+        juce::Grid::TrackInfo operator() (AttachedSlider&) const { return Fr (1); }
     };
 
     template <typename... Components>
     static void performLayout (const juce::Rectangle<int>& bounds, Components&... components) {
         juce::Grid grid;
         grid.alignContent    = juce::Grid::AlignContent::spaceAround;
-        grid.autoColumns     = juce::Grid::TrackInfo (Fr(1));
-        grid.autoRows        = juce::Grid::TrackInfo (Fr(1));
+        grid.autoColumns     = juce::Grid::TrackInfo (Fr (1));
+        grid.autoRows        = juce::Grid::TrackInfo (Fr (1));
         grid.columnGap       = juce::Grid::Px (80);
         grid.rowGap          = juce::Grid::Px (80);
         grid.autoFlow        = juce::Grid::AutoFlow::column;
-        grid.templateColumns = { Fr(1), Fr(1)};
-        grid.templateRows    = { Fr(1), Fr(1)};
+        grid.templateColumns = { Fr (1), Fr (1) };
+        grid.templateRows    = { Fr (1), Fr (1) };
         grid.items           = { GridItem (components)... };
         grid.performLayout (bounds);
     }
