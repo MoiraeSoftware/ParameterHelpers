@@ -98,26 +98,23 @@ namespace moiraesoftware{
         return 0.0f;
     };
 
-
-
-    static auto makeStringFromValueWithOffAt(float offValue, const juce::String& label) {
-        return [offValue, label](float value, [[maybe_unused]] int maximumStringLength = 5) {
+    static auto makeStringFromValueWithOffAt(float offValue, const juce::String& label, const juce::String& offText) {
+        return [offValue, label, offText] (float value, [[maybe_unused]] int maximumStringLength = 5) {
             if (juce::approximatelyEqual(value, offValue))
-                return juce::String("OFF");
+                return juce::String(offText);
             return juce::String(value, 1) + label;
         };
     }
 
-    static auto makeFromStringWithOffAt(float offValue, const juce::String& label) {
-        return [offValue, label](const juce::String& text) {
-            if (text.toLowerCase() == "off")
+    static auto makeFromStringWithOffAt(float offValue, const juce::String& label, const juce::String& offText) {
+        return [offValue, label, offText] (const juce::String& text) {
+            if (text.compareIgnoreCase(offText) == 0)
                 return offValue;
             if (text.endsWith(label))
-                return text.dropLastCharacters(2).getFloatValue();
+                return text.dropLastCharacters(label.length()).getFloatValue();
             return text.getFloatValue();
         };
     }
-
 
     namespace FrequencyUnit {
         struct Hz {};  // Tag for Hz-default mode
