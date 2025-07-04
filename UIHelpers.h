@@ -5,30 +5,6 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace moiraesoftware {
-    template <typename Func, typename... Items>
-    constexpr void forEach (Func&& func, Items&&... items) {
-        (func (std::forward<Items> (items)), ...);
-    }
-
-    template <typename... Components>
-    void addAllAndMakeVisible (juce::Component& target, Components&... children) {
-        forEach ([&] (juce::Component& child) { target.addAndMakeVisible (child); }, children...);
-    }
-
-    template <typename... Processors>
-    void prepareAll (const juce::dsp::ProcessSpec& spec, Processors&... processors) {
-        forEach ([&] (auto& proc) { proc.prepare (spec); }, processors...);
-    }
-
-    template <typename... Processors>
-    void resetAll (Processors&... processors) {
-        forEach ([] (auto& proc) { proc.reset(); }, processors...);
-    }
-
-    template <typename... Processors>
-    void processAll (const juce::dsp::ProcessContextReplacing<float>& context, Processors&... processors) {
-        forEach ([&] (auto& proc) { proc.process (context); }, processors...);
-    }
 
     inline juce::Rectangle<int>
         extractTileByNumber (const juce::Image& mosaic, int tileWidth, int tileHeight, int n) {
@@ -256,7 +232,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             attachment (paramIn, slider, undoManager),
             suffixDisplay (suffix) {
             slider.addMouseListener (this, true);
-            addAllAndMakeVisible (*this, slider, label);
+
+            addAndMakeVisible(slider);
+            addAndMakeVisible(label);
 
             UpdateSuffix();
 
@@ -404,7 +382,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             attachment (paramIn, combo, undoManager) {
             combo.addMouseListener (this, true);
             combo.setJustificationType (juce::Justification::centred);
-            addAllAndMakeVisible (*this, combo, label);
+            addAndMakeVisible(combo);
+            addAndMakeVisible (label);
+
             label.attachToComponent (&combo, false);
             label.setJustificationType (juce::Justification::centred);
         }

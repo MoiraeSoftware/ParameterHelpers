@@ -4,7 +4,7 @@ project(ParameterHelpers VERSION 0.0.1 LANGUAGES CXX
         DESCRIPTION "JUCE module for helping with parameters in binding and GUI"
         HOMEPAGE_URL "https://github.com/MoiraeSoftware/parameter_helpers")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 if (NOT COMMAND juce_add_module)
