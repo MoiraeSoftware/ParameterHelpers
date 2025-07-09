@@ -7,7 +7,7 @@ version:            0.0.1
 name:               Parameter Helpers
 description:        Classes and helpers to make working with JUCE's AudioProcessorValueTreeState easier.
 license:            MIT
-dependencies:       juce_audio_processors, juce_gui_basics
+dependencies:       juce_audio_processors, juce_gui_basics, juce_core
 minimumCppStandard: 17
 
 END_JUCE_MODULE_DECLARATION
