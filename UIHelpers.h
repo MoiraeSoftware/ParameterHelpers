@@ -201,13 +201,20 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             editor (editorIn), param (paramIn) {}
 
         void mouseUp (const juce::MouseEvent& e) override {
-            if (e.mods.isRightButtonDown()) {
-                if (const auto* c = editor.getHostContext()) {
-                    if (const auto menuInfo = c->getContextMenuForParameter (&param)) {
-                        menuInfo->getEquivalentPopupMenu().showMenuAsync (
-                            juce::PopupMenu::Options {}.withTargetComponent (this).withMousePosition());
-                    }
-                }
+            if (!e.mods.isRightButtonDown()) return;
+
+            const auto* hostContext = editor.getHostContext();
+            if (!hostContext) return;
+
+            const auto menuInfo = hostContext->getContextMenuForParameter (&param);
+            if (!menuInfo) return;
+
+            try {
+                auto popupMenu = menuInfo->getEquivalentPopupMenu();
+                popupMenu.showMenuAsync (
+                    juce::PopupMenu::Options {}.withTargetComponent (this).withMousePosition());
+            } catch (...) {
+                // Silently handle any exceptions from the host
             }
         }
 
