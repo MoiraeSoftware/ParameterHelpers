@@ -1,8 +1,8 @@
 #pragma once
 
-#include <juce_core/juce_core.h>
-#include <juce_audio_processors/juce_audio_processors.h>
 #include "melatonin_parameters/melatonin_parameters.h"
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_core/juce_core.h>
 
 namespace moiraesoftware {
     using Attributes = juce::AudioProcessorValueTreeStateParameterAttributes;
@@ -114,6 +114,20 @@ namespace moiraesoftware {
             if (text.endsWith (label))
                 return text.dropLastCharacters (label.length()).getFloatValue();
             return text.getFloatValue();
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeDBParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout,
+                                                           ParamID,
+                                                           name,
+                                                           range,
+                                                           defaultVal,
+                                                           juce::AudioParameterFloatAttributes()
+                                                               .withStringFromValueFunction (stringFromDBValue)
+                                                               .withValueFromStringFunction (dBFromString));
         };
     }
 
@@ -254,5 +268,37 @@ namespace moiraesoftware {
         range.interval = 0.001f;
 
         return range;
+    }
+
+    // Zero-cost parameter factory templates - eliminates boilerplate!
+    template <auto& ParamID, typename Range>
+    constexpr auto makeStandardParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout,
+                                                           ParamID,
+                                                           name,
+                                                           range,
+                                                           defaultVal,
+                                                           juce::AudioParameterFloatAttributes()
+                                                               .withStringFromValueFunction (stringFromValue)
+                                                               .withValueFromStringFunction (valueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeFrequencyParam (const char* name, Range range, float defaultVal, float offValue) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (
+                layout,
+                ParamID,
+                name,
+                range,
+                defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (
+                        makeStringFromValueWithFrequencyWithOffAt<FrequencyUnit::Hz> (offValue, 0))
+                    .withValueFromStringFunction (
+                        makeFromStringWithFrequencyWithOffAt<FrequencyUnit::Hz> (offValue)));
+        };
     }
 }

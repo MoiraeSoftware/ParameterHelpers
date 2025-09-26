@@ -236,18 +236,24 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                         juce::Slider::SliderStyle   style  = juce::Slider::RotaryVerticalDrag) :
             ComponentWithParamMenu (editorIn, paramIn),
             slider { juce::Slider::RotaryVerticalDrag, juce::Slider::TextBoxBelow },
+        #ifdef ADD_SLIDER_LABEL
             label ("", paramIn.name),
+        #endif
             attachment (paramIn, slider, undoManager),
             suffixDisplay (suffix) {
             slider.addMouseListener (this, true);
 
             addAndMakeVisible(slider);
+            #ifdef ADD_SLIDER_LABEL
             addAndMakeVisible(label);
+            #endif
 
             UpdateSuffix();
 
+            #ifdef ADD_SLIDER_LABEL
             label.attachToComponent (&slider, false);
             label.setJustificationType (juce::Justification::centred);
+            #endif
         }
 
         void UpdateSuffix() {
@@ -276,7 +282,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     private:
         juce::Slider                    slider;
+    #ifdef ADD_SLIDER_LABEL
         juce::Label                     label;
+    #endif
         juce::SliderParameterAttachment attachment;
         SuffixDisplay                   suffixDisplay;
     };
