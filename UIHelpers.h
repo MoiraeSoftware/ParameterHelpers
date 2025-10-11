@@ -225,22 +225,124 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         juce::RangedAudioParameter& param;
     };
 
+    // Improved suffix system using function-based strategy pattern
+    using SuffixStrategy = std::function<std::string(float value, const juce::String& defaultSuffix)>;
+
+    struct SuffixStrategies {
+        static SuffixStrategy always() {
+            return [](float, const juce::String& suffix) { return suffix.toStdString(); };
+        }
+
+        static SuffixStrategy never() {
+            return [](float, const juce::String&) { return ""; };
+        }
+
+        static SuffixStrategy hideAt(float hideValue) {
+            return [hideValue](float value, const juce::String& suffix) {
+                return juce::approximatelyEqual(value, hideValue) ? "" : suffix.toStdString();
+            };
+        }
+
+        static SuffixStrategy hideAtMin() {
+            return [](float value, const juce::String& suffix) {
+                // This will be set up properly in AttachedSlider constructor
+                return suffix.toStdString();
+            };
+        }
+
+        static SuffixStrategy hideAtMax() {
+            return [](float value, const juce::String& suffix) {
+                // This will be set up properly in AttachedSlider constructor
+                return suffix.toStdString();
+            };
+        }
+
+        static SuffixStrategy hideAtZero() {
+            return hideAt(0.0f);
+        }
+
+        static SuffixStrategy custom(std::function<std::string(float)> func) {
+            return [func](float value, const juce::String&) { return func(value); };
+        }
+
+        // Parameter-aware suffix factories - eliminate hardcoded values!
+        // USAGE NOTE: These factories extract min/max values directly from the parameter's NormalisableRange,
+        // eliminating duplication between parameter definitions and suffix logic. Always prefer these over
+        // hardcoded values when you need "OFF" behavior at range boundaries.
+        //
+        // Example: For a lowcut filter (19-220Hz, OFF at 19Hz):
+        //   AttachedSlider(editor, lowCutParam, undoManager, SuffixStrategies::frequencyWithOff(lowCutParam, true))
+        //   - Automatically shows "OFF" at 19Hz (range.start)
+        //   - Shows "Hz" for all other values
+        //   - No hardcoded 19.0f anywhere!
+
+        static SuffixStrategy offAtMin(const juce::RangedAudioParameter& param, const std::string& unit = "") {
+            return [&param, unit](float value, const juce::String& defaultSuffix) {
+                auto range = param.getNormalisableRange();
+                if (juce::approximatelyEqual(value, range.start)) {
+                    return std::string("OFF");
+                }
+                return unit.empty() ? defaultSuffix.toStdString() : unit;
+            };
+        }
+
+        static SuffixStrategy offAtMax(const juce::RangedAudioParameter& param, const std::string& unit = "") {
+            return [&param, unit](float value, const juce::String& defaultSuffix) {
+                auto range = param.getNormalisableRange();
+                if (juce::approximatelyEqual(value, range.end)) {
+                    return std::string("OFF");
+                }
+                return unit.empty() ? defaultSuffix.toStdString() : unit;
+            };
+        }
+
+        // Convenience factory for frequency parameters with OFF states
+        static SuffixStrategy frequencyWithOff(const juce::RangedAudioParameter& param, bool offAtMinimum = true) {
+            return offAtMinimum ? offAtMin(param, "Hz") : offAtMax(param, "Hz");
+        }
+    };
+
+    // Legacy enum for backwards compatibility
     enum SuffixDisplay { OffOnMinimum, OffOnMaximum, Always, Never, Zero };
 
     class AttachedSlider : public ComponentWithParamMenu {
     public:
+        // Legacy constructor for backwards compatibility
         AttachedSlider (juce::AudioProcessorEditor& editorIn,
                         juce::RangedAudioParameter& paramIn,
                         juce::UndoManager*          undoManager,
                         const SuffixDisplay         suffix = Always,
                         juce::Slider::SliderStyle   style  = juce::Slider::RotaryVerticalDrag) :
             ComponentWithParamMenu (editorIn, paramIn),
-            slider { juce::Slider::RotaryVerticalDrag, juce::Slider::TextBoxBelow },
+            slider { style, juce::Slider::TextBoxBelow },
         #ifdef ADD_SLIDER_LABEL
             label ("", paramIn.name),
         #endif
             attachment (paramIn, slider, undoManager),
-            suffixDisplay (suffix) {
+            suffixDisplay (suffix),
+            useLegacySuffix(true) {
+            initializeSlider();
+        }
+
+        // Modern constructor with improved suffix strategy
+        AttachedSlider (juce::AudioProcessorEditor& editorIn,
+                        juce::RangedAudioParameter& paramIn,
+                        juce::UndoManager*          undoManager,
+                        SuffixStrategy              suffixStrategy,
+                        juce::Slider::SliderStyle   style = juce::Slider::RotaryVerticalDrag) :
+            ComponentWithParamMenu (editorIn, paramIn),
+            slider { style, juce::Slider::TextBoxBelow },
+        #ifdef ADD_SLIDER_LABEL
+            label ("", paramIn.name),
+        #endif
+            attachment (paramIn, slider, undoManager),
+            suffixStrategy (std::move(suffixStrategy)),
+            useLegacySuffix(false) {
+            initializeSlider();
+        }
+
+    private:
+        void initializeSlider() {
             slider.addMouseListener (this, true);
 
             addAndMakeVisible(slider);
@@ -256,7 +358,18 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             #endif
         }
 
+    public:
+
         void UpdateSuffix() {
+            if (useLegacySuffix) {
+                updateLegacySuffix();
+            } else {
+                updateModernSuffix();
+            }
+        }
+
+    private:
+        void updateLegacySuffix() {
             const auto value  = slider.getValueObject();
             const bool isMin  = value == slider.getMinimum();
             const bool isMax  = value == slider.getMaximum();
@@ -269,6 +382,18 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                 SetDefaultSuffix();
             }
         }
+
+        void updateModernSuffix() {
+            if (suffixStrategy) {
+                auto currentValue = static_cast<float>(slider.getValue());
+                auto suffixText = suffixStrategy(currentValue, getParam().label);
+                slider.setTextValueSuffix(suffixText.empty() ? "" : " " + juce::String(suffixText));
+            } else {
+                SetDefaultSuffix();
+            }
+        }
+
+    public:
 
         void SetDefaultSuffix() { slider.setTextValueSuffix (" " + getParam().label); }
 
@@ -286,7 +411,15 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         juce::Label                     label;
     #endif
         juce::SliderParameterAttachment attachment;
-        SuffixDisplay                   suffixDisplay;
+
+        // Legacy suffix system
+        SuffixDisplay                   suffixDisplay = Always;
+
+        // Modern suffix system
+        SuffixStrategy                  suffixStrategy;
+        bool                            useLegacySuffix = true;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedSlider)
     };
 
     class AttachedToggle : public ComponentWithParamMenu {
@@ -426,6 +559,85 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
     public:
         ComboWithItems&                    getCombo() { return combo; }
         juce::ComboBoxParameterAttachment& getAttachment() { return attachment; }
+    };
+
+    // AttachedCycler: Reusable template for discrete parameter cycling with custom UI components
+    template<typename CustomComponent>
+    class AttachedCycler : public ComponentWithParamMenu {
+    public:
+        AttachedCycler(juce::AudioProcessorEditor& editorIn,
+                       juce::RangedAudioParameter& paramIn,
+                       juce::UndoManager* undoManager = nullptr,
+                       std::function<void(float)> valueChangedCallback = nullptr)
+            : ComponentWithParamMenu(editorIn, paramIn)
+            , component()
+            , attachment(paramIn, [this](float v) { updateDisplay(v); }, undoManager)
+            , customValueCallback(valueChangedCallback)
+        {
+            component.addMouseListener(this, true);
+            addAndMakeVisible(component);
+
+            // Set up cycling callbacks from component to parameter
+            component.onCyclePrevious = [this]() { cycleToPrevious(); };
+            component.onCycleNext = [this]() { cycleToNext(); };
+
+            attachment.sendInitialUpdate();
+        }
+
+        void resized() override {
+            component.setBounds(getLocalBounds());
+        }
+
+        CustomComponent& getComponent() { return component; }
+        juce::ParameterAttachment& getAttachment() { return attachment; }
+
+    private:
+        CustomComponent component;
+        juce::ParameterAttachment attachment;
+        std::function<void(float)> customValueCallback;
+
+        void updateDisplay(float newValue) {
+            component.setValue(newValue);
+            if (customValueCallback) {
+                customValueCallback(newValue);
+            }
+        }
+
+        void cycleToPrevious() {
+            auto& param = getParam();
+            auto currentValue = param.getValue();
+            auto range = param.getNormalisableRange();
+
+            // Convert to denormalized value for cycling logic
+            auto denormalized = param.convertFrom0to1(currentValue);
+            auto newValue = denormalized - range.interval;
+
+            // Handle wrap-around
+            if (newValue < range.start) {
+                newValue = range.end;
+            }
+
+            attachment.setValueAsCompleteGesture(newValue);
+        }
+
+        void cycleToNext() {
+            auto& param = getParam();
+            auto currentValue = param.getValue();
+            auto range = param.getNormalisableRange();
+
+            // Convert to denormalized value for cycling logic
+            auto denormalized = param.convertFrom0to1(currentValue);
+            auto newValue = denormalized + range.interval;
+
+            // Handle wrap-around
+            if (newValue > range.end) {
+                newValue = range.start;
+            }
+
+            attachment.setValueAsCompleteGesture(newValue);
+        }
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedCycler)
     };
 
     using Px = juce::Grid::Px;
