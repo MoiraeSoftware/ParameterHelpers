@@ -581,6 +581,11 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             component.onCyclePrevious = [this]() { cycleToPrevious(); };
             component.onCycleNext = [this]() { cycleToNext(); };
 
+            // Set up direct value selection callback (for popup menus, etc.)
+            if constexpr (requires { component.onValueSelected; }) {
+                component.onValueSelected = [this](float value) { setValueDirect(value); };
+            }
+
             attachment.sendInitialUpdate();
         }
 
@@ -635,6 +640,10 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             }
 
             attachment.setValueAsCompleteGesture(newValue);
+        }
+
+        void setValueDirect(float value) {
+            attachment.setValueAsCompleteGesture(value);
         }
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedCycler)
