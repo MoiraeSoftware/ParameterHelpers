@@ -285,7 +285,7 @@ namespace moiraesoftware {
         };
     }
 
-    template <auto& ParamID, typename Range>
+    template <auto& ParamID, typename Range, typename Unit = FrequencyUnit::Hz>
     constexpr auto makeFrequencyParam (const char* name, Range range, float defaultVal, float offValue) {
         return [=] (auto& layout) -> auto& {
             return addToLayout<juce::AudioParameterFloat> (
@@ -295,10 +295,8 @@ namespace moiraesoftware {
                 range,
                 defaultVal,
                 juce::AudioParameterFloatAttributes()
-                    .withStringFromValueFunction (
-                        makeStringFromValueWithFrequencyWithOffAt<FrequencyUnit::Hz> (offValue, 0))
-                    .withValueFromStringFunction (
-                        makeFromStringWithFrequencyWithOffAt<FrequencyUnit::Hz> (offValue)));
+                    .withStringFromValueFunction (makeStringFromValueWithFrequencyWithOffAt<Unit> (offValue, 0))
+                    .withValueFromStringFunction (makeFromStringWithFrequencyWithOffAt<Unit> (offValue)));
         };
     }
 }
