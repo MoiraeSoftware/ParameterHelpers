@@ -568,11 +568,15 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         AttachedCycler(juce::AudioProcessorEditor& editorIn,
                        juce::RangedAudioParameter& paramIn,
                        juce::UndoManager* undoManager = nullptr,
-                       std::function<void(float)> valueChangedCallback = nullptr)
+                       std::function<void(float)> valueChangedCallback = nullptr,
+                       std::function<uint32_t(uint32_t)> customCycleNext = nullptr,
+                       std::function<uint32_t(uint32_t)> customCyclePrevious = nullptr)
             : ComponentWithParamMenu(editorIn, paramIn)
             , component()
             , attachment(paramIn, [this](float v) { updateDisplay(v); }, undoManager)
             , customValueCallback(valueChangedCallback)
+            , customCycleNextFunc(customCycleNext)
+            , customCyclePreviousFunc(customCyclePrevious)
         {
             component.addMouseListener(this, true);
             addAndMakeVisible(component);
@@ -600,6 +604,8 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         CustomComponent component;
         juce::ParameterAttachment attachment;
         std::function<void(float)> customValueCallback;
+        std::function<uint32_t(uint32_t)> customCycleNextFunc;
+        std::function<uint32_t(uint32_t)> customCyclePreviousFunc;
 
         void updateDisplay(float newValue) {
             component.setValue(newValue);
@@ -611,15 +617,21 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         void cycleToPrevious() {
             auto& param = getParam();
             auto currentValue = param.getValue();
-            auto range = param.getNormalisableRange();
-
-            // Convert to denormalized value for cycling logic
             auto denormalized = param.convertFrom0to1(currentValue);
-            auto newValue = denormalized - range.interval;
 
-            // Handle wrap-around
-            if (newValue < range.start) {
-                newValue = range.end;
+            float newValue;
+            if (customCyclePreviousFunc) {
+                // Use custom cycling function
+                auto currentPacked = static_cast<uint32_t>(denormalized);
+                auto newPacked = customCyclePreviousFunc(currentPacked);
+                newValue = static_cast<float>(newPacked);
+            } else {
+                // Default linear cycling
+                auto range = param.getNormalisableRange();
+                newValue = denormalized - range.interval;
+                if (newValue < range.start) {
+                    newValue = range.end;
+                }
             }
 
             attachment.setValueAsCompleteGesture(newValue);
@@ -628,15 +640,21 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         void cycleToNext() {
             auto& param = getParam();
             auto currentValue = param.getValue();
-            auto range = param.getNormalisableRange();
-
-            // Convert to denormalized value for cycling logic
             auto denormalized = param.convertFrom0to1(currentValue);
-            auto newValue = denormalized + range.interval;
 
-            // Handle wrap-around
-            if (newValue > range.end) {
-                newValue = range.start;
+            float newValue;
+            if (customCycleNextFunc) {
+                // Use custom cycling function
+                auto currentPacked = static_cast<uint32_t>(denormalized);
+                auto newPacked = customCycleNextFunc(currentPacked);
+                newValue = static_cast<float>(newPacked);
+            } else {
+                // Default linear cycling
+                auto range = param.getNormalisableRange();
+                newValue = denormalized + range.interval;
+                if (newValue > range.end) {
+                    newValue = range.start;
+                }
             }
 
             attachment.setValueAsCompleteGesture(newValue);
