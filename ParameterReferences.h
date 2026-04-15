@@ -158,7 +158,8 @@ namespace moiraesoftware {
 
     template <typename Unit = FrequencyUnit::Hz>
     static auto makeStringFromValueWithFrequency (int hzDecimalPlaces = 1, int khzDecimalPlaces = 2) {
-        return [hzDecimalPlaces, khzDecimalPlaces] (float value) -> juce::String {
+        return [hzDecimalPlaces, khzDecimalPlaces] (float value,
+                                                    [[maybe_unused]] int maximumStringLength = 0) -> juce::String {
             if constexpr (std::is_same_v<Unit, FrequencyUnit::kHz>) {
                 if (value >= 1000.0f) {
                     return juce::String (value / 1000.0f, khzDecimalPlaces) + " kHz";
@@ -286,7 +287,22 @@ namespace moiraesoftware {
     }
 
     template <auto& ParamID, typename Range, typename Unit = FrequencyUnit::Hz>
-    constexpr auto makeFrequencyParam (const char* name, Range range, float defaultVal, float offValue) {
+    constexpr auto makeFrequencyParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (
+                layout,
+                ParamID,
+                name,
+                range,
+                defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (makeStringFromValueWithFrequency<Unit>())
+                    .withValueFromStringFunction (makeFromStringWithFrequency<Unit>()));
+        };
+    }
+
+    template <auto& ParamID, typename Range, typename Unit = FrequencyUnit::Hz>
+    constexpr auto makeFrequencyParamWithOff (const char* name, Range range, float defaultVal, float offValue) {
         return [=] (auto& layout) -> auto& {
             return addToLayout<juce::AudioParameterFloat> (
                 layout,

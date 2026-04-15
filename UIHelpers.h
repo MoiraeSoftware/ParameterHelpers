@@ -311,17 +311,16 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         AttachedSlider (juce::AudioProcessorEditor& editorIn,
                         juce::RangedAudioParameter& paramIn,
                         juce::UndoManager*          undoManager,
-                        const SuffixDisplay         suffix = Always,
-                        juce::Slider::SliderStyle   style  = juce::Slider::RotaryVerticalDrag) :
+                        const SuffixDisplay         suffix    = Always,
+                        juce::Slider::SliderStyle   style     = juce::Slider::RotaryVerticalDrag,
+                        bool                        showLabel = false) :
             ComponentWithParamMenu (editorIn, paramIn),
             slider { style, juce::Slider::TextBoxBelow },
-        #ifdef ADD_SLIDER_LABEL
             label ("", paramIn.name),
-        #endif
             attachment (paramIn, slider, undoManager),
             suffixDisplay (suffix),
             useLegacySuffix(true) {
-            initializeSlider();
+            initializeSlider(showLabel);
         }
 
         // Modern constructor with improved suffix strategy
@@ -329,33 +328,29 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
                         juce::RangedAudioParameter& paramIn,
                         juce::UndoManager*          undoManager,
                         SuffixStrategy              suffixStrategy,
-                        juce::Slider::SliderStyle   style = juce::Slider::RotaryVerticalDrag) :
+                        juce::Slider::SliderStyle   style     = juce::Slider::RotaryVerticalDrag,
+                        bool                        showLabel = false) :
             ComponentWithParamMenu (editorIn, paramIn),
             slider { style, juce::Slider::TextBoxBelow },
-        #ifdef ADD_SLIDER_LABEL
             label ("", paramIn.name),
-        #endif
             attachment (paramIn, slider, undoManager),
             suffixStrategy (std::move(suffixStrategy)),
             useLegacySuffix(false) {
-            initializeSlider();
+            initializeSlider(showLabel);
         }
 
     private:
-        void initializeSlider() {
+        void initializeSlider(bool showLabel) {
             slider.addMouseListener (this, true);
+            addAndMakeVisible (slider);
 
-            addAndMakeVisible(slider);
-            #ifdef ADD_SLIDER_LABEL
-            addAndMakeVisible(label);
-            #endif
+            if (showLabel) {
+                addAndMakeVisible (label);
+                label.attachToComponent (&slider, false);
+                label.setJustificationType (juce::Justification::centred);
+            }
 
             UpdateSuffix();
-
-            #ifdef ADD_SLIDER_LABEL
-            label.attachToComponent (&slider, false);
-            label.setJustificationType (juce::Justification::centred);
-            #endif
         }
 
     public:
@@ -395,6 +390,15 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
     public:
 
+        void enableLabel (juce::Component& labelParent) {
+            label.setJustificationType (juce::Justification::centred);
+            labelParent.addAndMakeVisible (label);
+            label.attachToComponent (this, false); // positions above AttachedSlider in labelParent's coords
+        }
+
+        void setLabelText (const juce::String& text) { label.setText (text, juce::dontSendNotification); }
+        void setLabelLookAndFeel (juce::LookAndFeel& lf) { label.setLookAndFeel (&lf); }
+
         void SetDefaultSuffix() { slider.setTextValueSuffix (" " + getParam().label); }
 
         void ClearSuffix() { slider.setTextValueSuffix (""); }
@@ -402,14 +406,13 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         void resized() override { slider.setBounds (getLocalBounds()); }
 
         juce::Slider& getSlider() { return slider; }
+        juce::Label& getLabel() { return label; }
 
         juce::SliderParameterAttachment& getAttachment() { return attachment; }
 
     private:
         juce::Slider                    slider;
-    #ifdef ADD_SLIDER_LABEL
         juce::Label                     label;
-    #endif
         juce::SliderParameterAttachment attachment;
 
         // Legacy suffix system
