@@ -301,6 +301,17 @@ namespace moiraesoftware {
         };
     }
 
+    // Percent parameter: internal value 0-1, displayed as "X.X%" (1 dp). Shows "OFF" at exactly 0.
+    template <auto& ParamID, typename Range>
+    constexpr auto makePercentParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromPercentValueWithDigits<1>)
+                    .withValueFromStringFunction (percentValueFromString));
+        };
+    }
+
     template <auto& ParamID, typename Range, typename Unit = FrequencyUnit::Hz>
     constexpr auto makeFrequencyParamWithOff (const char* name, Range range, float defaultVal, float offValue) {
         return [=] (auto& layout) -> auto& {
