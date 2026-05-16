@@ -326,4 +326,158 @@ namespace moiraesoftware {
                     .withValueFromStringFunction (makeFromStringWithFrequencyWithOffAt<Unit> (offValue)));
         };
     }
+
+    // ---- Unit-formatting helpers used by the factories below ----
+
+    static inline auto stringFromMsValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        const float absV = std::abs (value);
+        if (absV >= 100.0f)  return juce::String (juce::roundToInt (value)) + " ms";
+        if (absV >= 10.0f)   return juce::String (value, 1) + " ms";
+        return juce::String (value, 2) + " ms";
+    };
+
+    static inline auto msValueFromString = [] (const juce::String& text) {
+        auto t = text.toLowerCase().trim();
+        if (t.endsWith ("ms")) return t.dropLastCharacters (2).trim().getFloatValue();
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromRateHz = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        if (value < 1.0f)   return juce::String (value, 3) + " Hz";
+        if (value < 10.0f)  return juce::String (value, 2) + " Hz";
+        return juce::String (value, 1) + " Hz";
+    };
+
+    static inline auto rateHzFromString = [] (const juce::String& text) {
+        auto t = text.toLowerCase().trim();
+        if (t.endsWith ("hz")) return t.dropLastCharacters (2).trim().getFloatValue();
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromRatioValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        return juce::String (value, 1) + ":1";
+    };
+
+    static inline auto ratioValueFromString = [] (const juce::String& text) {
+        auto t = text.trim();
+        if (t.endsWith (":1")) return t.dropLastCharacters (2).getFloatValue();
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromSecondsValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        return juce::String (value, 2) + " s";
+    };
+
+    static inline auto secondsValueFromString = [] (const juce::String& text) {
+        auto t = text.toLowerCase().trim();
+        if (t.endsWith ("s")) return t.dropLastCharacters (1).trim().getFloatValue();
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromDegreesValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        return juce::String (juce::roundToInt (value)) + juce::String (juce::CharPointer_UTF8 ("\xc2\xb0"));
+    };
+
+    static inline auto degreesValueFromString = [] (const juce::String& text) {
+        auto t = text.trim();
+        // Strip a trailing degree sign (UTF-8 0xc2 0xb0) or stray "deg".
+        if (t.endsWith (juce::String (juce::CharPointer_UTF8 ("\xc2\xb0"))))
+            t = t.dropLastCharacters (1);
+        if (t.toLowerCase().endsWith ("deg"))
+            t = t.dropLastCharacters (3);
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromMultiplierValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        return juce::String (value, 2) + "x";
+    };
+
+    static inline auto multiplierValueFromString = [] (const juce::String& text) {
+        auto t = text.toLowerCase().trim();
+        if (t.endsWith ("x")) return t.dropLastCharacters (1).getFloatValue();
+        return t.getFloatValue();
+    };
+
+    static inline auto stringFromBitsValue = [] (float value, [[maybe_unused]] int maximumStringLength = 0) {
+        return juce::String (value, 1) + " bits";
+    };
+
+    static inline auto bitsValueFromString = [] (const juce::String& text) {
+        auto t = text.toLowerCase().trim();
+        if (t.endsWith ("bits")) return t.dropLastCharacters (4).trim().getFloatValue();
+        if (t.endsWith ("bit"))  return t.dropLastCharacters (3).trim().getFloatValue();
+        return t.getFloatValue();
+    };
+
+    // ---- Unit factories ----
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeMsParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromMsValue)
+                    .withValueFromStringFunction (msValueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeRateParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromRateHz)
+                    .withValueFromStringFunction (rateHzFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeRatioParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromRatioValue)
+                    .withValueFromStringFunction (ratioValueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeSecondsParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromSecondsValue)
+                    .withValueFromStringFunction (secondsValueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeDegreesParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromDegreesValue)
+                    .withValueFromStringFunction (degreesValueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeMultiplierParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromMultiplierValue)
+                    .withValueFromStringFunction (multiplierValueFromString));
+        };
+    }
+
+    template <auto& ParamID, typename Range>
+    constexpr auto makeBitsParam (const char* name, Range range, float defaultVal) {
+        return [=] (auto& layout) -> auto& {
+            return addToLayout<juce::AudioParameterFloat> (layout, ParamID, name, range, defaultVal,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction (stringFromBitsValue)
+                    .withValueFromStringFunction (bitsValueFromString));
+        };
+    }
 }
