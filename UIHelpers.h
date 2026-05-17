@@ -399,7 +399,13 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         void setLabelText (const juce::String& text) { label.setText (text, juce::dontSendNotification); }
         void setLabelLookAndFeel (juce::LookAndFeel& lf) { label.setLookAndFeel (&lf); }
 
-        void SetDefaultSuffix() { slider.setTextValueSuffix (" " + getParam().label); }
+        void SetDefaultSuffix() {
+            // The parameter factories (makeMsParam, makeDBParam, makeFrequencyParam, ...) already embed
+            // the unit in textFromValueFunction. Appending a non-empty default suffix doubles it
+            // (e.g. "10 ms" + "ms" => "10 msms"). Only honour the JUCE param label when it is set.
+            const auto& label = getParam().label;
+            slider.setTextValueSuffix (label.isEmpty() ? juce::String() : " " + label);
+        }
 
         void ClearSuffix() { slider.setTextValueSuffix (""); }
 
