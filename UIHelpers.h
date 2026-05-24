@@ -243,17 +243,17 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             };
         }
 
-        static SuffixStrategy hideAtMin() {
-            return [](float value, const juce::String& suffix) {
-                // This will be set up properly in AttachedSlider constructor
-                return suffix.toStdString();
+        static SuffixStrategy hideAtMin(const juce::RangedAudioParameter& param) {
+            return [&param](float value, const juce::String& suffix) {
+                auto range = param.getNormalisableRange();
+                return juce::approximatelyEqual(value, range.start) ? "" : suffix.toStdString();
             };
         }
 
-        static SuffixStrategy hideAtMax() {
-            return [](float value, const juce::String& suffix) {
-                // This will be set up properly in AttachedSlider constructor
-                return suffix.toStdString();
+        static SuffixStrategy hideAtMax(const juce::RangedAudioParameter& param) {
+            return [&param](float value, const juce::String& suffix) {
+                auto range = param.getNormalisableRange();
+                return juce::approximatelyEqual(value, range.end) ? "" : suffix.toStdString();
             };
         }
 
