@@ -173,17 +173,9 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
             }
         }
 
+        // State changes fire on mouse over, mouse down etc., so selection is
+        // handled in buttonClicked, not here.
         void buttonStateChanged (juce::Button* b) override {}
-        //        if (ignoreCallbacks) {
-        //            return;
-        //        }
-        // state change occurs on mouse over and mouse down etc. So we don't want to toggle in this callback
-        //        for (int i = 0; i < buttons.size(); i++) {
-        //            if (b == buttons.getUnchecked(i) && b->getToggleState()) {
-        //                attachment.setValueAsCompleteGesture(static_cast<float>(i));
-        //            }
-        //        }
-        //    }
 
         float                                                   value {};
         juce::RangedAudioParameter&                             storedParameter;
@@ -482,15 +474,6 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
         }
 #endif
 
-        //        void resized() override {
-        //            auto buttons = attachment.getButtons();
-        //            auto lb = getLocalBounds();
-        //            std::for_each (
-        //                buttons.begin(), buttons.end(), [this, &lb] (Button* button) {
-        //                    button->setBounds (lb);
-        //                });
-        //        }
-
         juce::Button* getButtonAtIndex (const int i) const { return attachment.getButton (i); }
 
         RadioButtonParameterAttachment& getAttachment() { return attachment; }
@@ -519,10 +502,6 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
         juce::ButtonParameterAttachment& getAttachment() { return attachment; }
 
-        //    RangedAudioParameter &getParameter() {
-        //        return param;
-        //    }
-
     private:
         juce::RangedAudioParameter&     param;
         T                               button;
@@ -549,7 +528,6 @@ Make sure to call sendInitialUpdate at the end of your new attachment's construc
 
         void resized() override {
             combo.setBounds (getLocalBounds());
-            //.withSizeKeepingCentre(jmin(getWidth(), 150), 24));
         }
 
     private:

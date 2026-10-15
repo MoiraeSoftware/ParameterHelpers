@@ -12,9 +12,6 @@ namespace moiraesoftware
 
         void parameterChanged (const juce::String& parameterID, float newValue) override
         {
-            //TODO:  check its not a param that doesnt need a re-calc of something in channel
-            // is there anything that doesnt need an update in the params?
-            //possibly if the speaker had changed but the mic was still set to none
             updateNeeded.store (true);
         }
 
